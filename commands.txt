@@ -1,0 +1,7 @@
+select (date_trunc('month', current_date) + interval '1 month' -
+        (case extract(dow from date_trunc('month', current_date) + interval '1 month')
+              when 0 then 2
+              when 1 then 3
+              else 1
+         end) * interval '1 day'
+       ) as last_weekday_in_month
