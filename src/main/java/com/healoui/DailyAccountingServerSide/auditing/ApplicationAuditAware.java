@@ -1,6 +1,5 @@
 package com.healoui.DailyAccountingServerSide.auditing;
 
-import com.healoui.DailyAccountingServerSide.models.User;
 import com.healoui.DailyAccountingServerSide.security.sevices.UserDetailsImpl;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;

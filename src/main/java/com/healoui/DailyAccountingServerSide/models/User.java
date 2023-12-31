@@ -1,68 +1,87 @@
 package com.healoui.DailyAccountingServerSide.models;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Data
-@NoArgsConstructor
-@Table(name = "users",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = "username"),
-                @UniqueConstraint(columnNames = "email")
+@Table( name = "users", 
+        uniqueConstraints = { 
+          @UniqueConstraint(columnNames = "username"),
+          @UniqueConstraint(columnNames = "email") 
         })
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @NotBlank
-    @Size(max = 20)
-    private String username;
+  @NotBlank
+  @Size(max = 20)
+  private String username;
 
-    @NotBlank
-    @Size(max = 50)
-    @Email
-    private String email;
+  @NotBlank
+  @Size(max = 50)
+  @Email
+  private String email;
 
-    @NotBlank
-    @Size(max = 120)
-    private String password;
+  @NotBlank
+  @Size(max = 120)
+  private String password;
 
-    @NotBlank
-    @Size(max = 10)
-    private String uniqueIdentifier;
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+  private Set<Role> roles = new HashSet<>();
 
-    @NotBlank
-    @Size(max = 8)
-    private String cin;
+  public User() {
+  }
 
-    @NotBlank
-    @Size(max = 120)
-    private String recipeName;
+  public User(String username, String email, String password) {
+    this.username = username;
+    this.email = email;
+    this.password = password;
+  }
 
-    @NotBlank
-    @Size(max = 10)
-    private String recipeCode;
+  public Long getId() {
+    return id;
+  }
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles = new HashSet<>();
+  public void setId(Long id) {
+    this.id = id;
+  }
 
-    public User(String username, String email, String password, String uniqueIdentifier, String cin, String recipeName,String recipeCode) {
-        this.username = username;
-        this.email = email;
-        this.password = password;
-        this.uniqueIdentifier = uniqueIdentifier;
-        this.cin = cin;
-        this.recipeName = recipeName;
-        this.recipeCode = recipeCode;
-    }
+  public String getUsername() {
+    return username;
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
+  }
+
+  public String getEmail() {
+    return email;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
+  public void setPassword(String password) {
+    this.password = password;
+  }
+
+  public Set<Role> getRoles() {
+    return roles;
+  }
+
+  public void setRoles(Set<Role> roles) {
+    this.roles = roles;
+  }
 }

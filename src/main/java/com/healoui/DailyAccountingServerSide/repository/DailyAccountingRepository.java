@@ -12,4 +12,5 @@ public interface DailyAccountingRepository extends JpaRepository<DailyAccounting
     Page<DailyAccounting> findByTitleContaining(String title, Pageable pageable);
 
     List<DailyAccounting> findByTitleContaining(String title, Sort sort);
-}
+
+   }

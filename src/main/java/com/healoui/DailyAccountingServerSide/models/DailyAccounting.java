@@ -1,7 +1,11 @@
 package com.healoui.DailyAccountingServerSide.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -11,9 +15,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "dailyAccounting")
@@ -24,6 +26,10 @@ public class DailyAccounting {
 
     @Column(name = "title")
     private String title;
+
+    @Column(name = "organismCode")
+    private String organismCode;
+
 
     @Column(name = "recipeToday")
     private double recipeToday;
@@ -61,6 +67,13 @@ public class DailyAccounting {
     @Column(name = "moneySpecies")
     private double moneySpecies;
 
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    //@ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organism_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JsonIgnore
+    private Organism organism;
+
     @CreatedDate
     @Column(
             nullable = false,
@@ -83,4 +96,24 @@ public class DailyAccounting {
     @LastModifiedBy
     @Column(insertable = false)
     private String lastModifiedBy;
+
+    public DailyAccounting(String title, double recipeToday, double balancePreviousMonth,
+                           double operationTreasuryAnterior, double operationTreasuryToday,
+                           double operationPreviousRegulation, double operationRegulationToday,
+                           double postCurrentAccount, double creditExpected, double rateExpected, double otherValues,
+                           double statesRepartition, double moneySpecies) {
+        this.title = title;
+        this.recipeToday = recipeToday;
+        this.balancePreviousMonth = balancePreviousMonth;
+        this.operationTreasuryAnterior = operationTreasuryAnterior;
+        this.operationTreasuryToday = operationTreasuryToday;
+        this.operationPreviousRegulation = operationPreviousRegulation;
+        this.operationRegulationToday = operationRegulationToday;
+        this.postCurrentAccount = postCurrentAccount;
+        this.creditExpected = creditExpected;
+        this.rateExpected = rateExpected;
+        this.otherValues = otherValues;
+        this.statesRepartition = statesRepartition;
+        this.moneySpecies = moneySpecies;
+    }
 }

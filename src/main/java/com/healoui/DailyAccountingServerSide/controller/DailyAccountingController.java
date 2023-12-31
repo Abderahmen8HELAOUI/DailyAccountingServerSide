@@ -1,34 +1,35 @@
 package com.healoui.DailyAccountingServerSide.controller;
 
+import com.healoui.DailyAccountingServerSide.exception.ResourceNotFoundException;
 import com.healoui.DailyAccountingServerSide.models.DailyAccounting;
-import com.healoui.DailyAccountingServerSide.payload.request.DailyAccountingRequest;
 import com.healoui.DailyAccountingServerSide.repository.DailyAccountingRepository;
-import com.healoui.DailyAccountingServerSide.security.sevices.DailyAccountingService;
+import com.healoui.DailyAccountingServerSide.repository.DailyAccountingResultsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:4200", maxAge = 3600, allowCredentials="true")
+@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class DailyAccountingController {
 
-    private final DailyAccountingRepository dailyAccountingRepository;
+    public final DailyAccountingRepository dailyAccountingRepository;
 
-    private final JdbcTemplate jdbcTemplate;
-
-    private final DailyAccountingService dailyAccountingService;
+    public final DailyAccountingResultsRepository dailyAccountingResultsRepository;
 
     private Sort.Direction getSortDirection(String direction) {
         if (direction.equals("asc")) {
@@ -40,57 +41,26 @@ public class DailyAccountingController {
         return Sort.Direction.ASC;
     }
 
-    @GetMapping("/sortedDailyAccounting")
-    public ResponseEntity<List<DailyAccounting>> getAllTutorials(@RequestParam(defaultValue = "id,desc") String[] sort) {
-
-        try {
-            List<Order> orders = new ArrayList<Order>();
-
-            if (sort[0].contains(",")) {
-                // will sort more than 2 fields
-                // sortOrder="field, direction"
-                for (String sortOrder : sort) {
-                    String[] _sort = sortOrder.split(",");
-                    orders.add(new Order(getSortDirection(_sort[1]), _sort[0]));
-                }
-            } else {
-                // sort=[field, direction]
-                orders.add(new Order(getSortDirection(sort[1]), sort[0]));
-            }
-
-            List<DailyAccounting> tutorials = dailyAccountingRepository.findAll(Sort.by(orders));
-
-            if (tutorials.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-
-            return new ResponseEntity<>(tutorials, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
     @GetMapping("/dailyAccounting")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> getAllTutorialsPage(
+    public ResponseEntity<Map<String, Object>> getAllDailyAccountingPage(
             @RequestParam(required = false) String title,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "3") int size,
             @RequestParam(defaultValue = "id,desc") String[] sort) {
 
-        try {
-            List<Order> orders = new ArrayList<Order>();
+            List<Sort.Order> orders = new ArrayList<Sort.Order>();
 
             if (sort[0].contains(",")) {
                 // will sort more than 2 fields
                 // sortOrder="field, direction"
                 for (String sortOrder : sort) {
                     String[] _sort = sortOrder.split(",");
-                    orders.add(new Order(getSortDirection(_sort[1]), _sort[0]));
+                    orders.add(new Sort.Order(getSortDirection(_sort[1]), _sort[0]));
                 }
             } else {
                 // sort=[field, direction]
-                orders.add(new Order(getSortDirection(sort[1]), sort[0]));
+                orders.add(new Sort.Order(getSortDirection(sort[1]), sort[0]));
             }
 
             List<DailyAccounting> dailyAccountingList = new ArrayList<DailyAccounting>();
@@ -111,87 +81,97 @@ public class DailyAccountingController {
             response.put("totalPages", pageTuts.getTotalPages());
 
             return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+
     }
+
 
     @GetMapping("/dailyAccounting/{id}")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<DailyAccounting> getTutorialById(@PathVariable("id") long id) {
-        Optional<DailyAccounting> dailyAccountingData = dailyAccountingRepository.findById(id);
+    public ResponseEntity<DailyAccounting> getDailyAccountingById(@PathVariable("id") long id) {
+        DailyAccounting dailyAccounting = dailyAccountingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found DailyAccounting with id = " + id));
 
-        if (dailyAccountingData.isPresent()) {
-            return new ResponseEntity<>(dailyAccountingData.get(), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        return new ResponseEntity<>(dailyAccounting, HttpStatus.OK);
     }
+
 
     @PostMapping("/dailyAccounting")
     @PreAuthorize("hasRole('MODERATOR')")
-    public ResponseEntity<?> createTutorial(@RequestBody DailyAccountingRequest dailyAccountingRequest) {
+    public ResponseEntity<DailyAccounting> createTutorial(@RequestBody DailyAccounting dailyAccounting) {
 
-        dailyAccountingService.createDailyAccounting(dailyAccountingRequest);
+            LocalDateTime currentLocalDateTime = LocalDateTime.now();
 
-        return ResponseEntity.accepted().build();
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
 
+            String formattedDateTime = currentLocalDateTime.format(dateTimeFormatter);
+            DailyAccounting _dailyAccounting = dailyAccountingRepository.save(new DailyAccounting(
+                    "OperationDate is : " + formattedDateTime,
+
+                    dailyAccounting.getRecipeToday(),
+                    dailyAccounting.getBalancePreviousMonth(),
+                    dailyAccounting.getOperationTreasuryAnterior(),
+
+                    dailyAccounting.getOperationTreasuryToday(),
+                    dailyAccounting.getOperationPreviousRegulation(),
+                    dailyAccounting.getOperationRegulationToday(),
+
+                    dailyAccounting.getPostCurrentAccount(),
+                    dailyAccounting.getCreditExpected(),
+                    dailyAccounting.getRateExpected(),
+
+                    dailyAccounting.getOtherValues(),
+                    dailyAccounting.getStatesRepartition(),
+                    dailyAccounting.getMoneySpecies()));
+
+
+        return new ResponseEntity<>(_dailyAccounting, HttpStatus.CREATED);
     }
 
     @PutMapping("/dailyAccounting/{id}")
     @PreAuthorize("hasRole('MODERATOR')")
-    public ResponseEntity<DailyAccounting> updateTutorial(@PathVariable("id") long id, @RequestBody DailyAccounting tutorial) {
-        Optional<DailyAccounting> tutorialData = dailyAccountingRepository.findById(id);
+    public ResponseEntity<DailyAccounting> updateDailyAccounting(@PathVariable("id") long id, @RequestBody DailyAccounting dailyAccounting) {
+        DailyAccounting _dailyAccounting = dailyAccountingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found DailyAccounting with id = " + id));
 
-        if (tutorialData.isPresent()) {
-            DailyAccounting _tutorial = tutorialData.get();
+        _dailyAccounting.setTitle(dailyAccounting.getTitle());
 
-            _tutorial.setTitle(tutorial.getTitle());
+        _dailyAccounting.setRecipeToday(dailyAccounting.getRecipeToday());
+        _dailyAccounting.setBalancePreviousMonth(dailyAccounting.getBalancePreviousMonth());
+        _dailyAccounting.setOperationTreasuryAnterior(dailyAccounting.getOperationTreasuryAnterior());
 
-            _tutorial.setRecipeToday(tutorial.getRecipeToday());
-            _tutorial.setBalancePreviousMonth(tutorial.getBalancePreviousMonth());
+        _dailyAccounting.setOperationTreasuryToday(dailyAccounting.getOperationTreasuryToday());
+        _dailyAccounting.setOperationPreviousRegulation(dailyAccounting.getOperationPreviousRegulation());
+        _dailyAccounting.setOperationRegulationToday(dailyAccounting.getOperationRegulationToday());
 
-            _tutorial.setOperationTreasuryAnterior(tutorial.getOperationTreasuryAnterior());
-            _tutorial.setOperationTreasuryToday(tutorial.getOperationTreasuryToday());
+        _dailyAccounting.setPostCurrentAccount(dailyAccounting.getPostCurrentAccount());
+        _dailyAccounting.setCreditExpected(dailyAccounting.getRateExpected());
+        _dailyAccounting.setRateExpected(dailyAccounting.getRateExpected());
 
-            _tutorial.setOperationPreviousRegulation(tutorial.getOperationPreviousRegulation());
-            _tutorial.setOperationRegulationToday(tutorial.getOperationRegulationToday());
+        _dailyAccounting.setStatesRepartition(dailyAccounting.getStatesRepartition());
+        _dailyAccounting.setOtherValues(dailyAccounting.getOtherValues());
+        _dailyAccounting.setMoneySpecies(dailyAccounting.getMoneySpecies());
 
-            _tutorial.setPostCurrentAccount(tutorial.getPostCurrentAccount());
-            _tutorial.setCreditExpected(tutorial.getCreditExpected());
-
-            _tutorial.setRateExpected(tutorial.getRateExpected());
-
-            _tutorial.setOtherValues(tutorial.getOtherValues());
-            _tutorial.setStatesRepartition(tutorial.getStatesRepartition());
-            _tutorial.setMoneySpecies(tutorial.getMoneySpecies());
-
-            return new ResponseEntity<>(dailyAccountingRepository.save(_tutorial), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        return new ResponseEntity<>(dailyAccountingRepository.save(_dailyAccounting), HttpStatus.OK);
     }
 
     @DeleteMapping("/dailyAccounting/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<HttpStatus> deleteTutorial(@PathVariable("id") long id) {
-        try {
-            dailyAccountingRepository.deleteById(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<HttpStatus> deleteDailyAccounting(@PathVariable("id") long id) {
+        if (dailyAccountingResultsRepository.existsById(id)) {
+            dailyAccountingResultsRepository.deleteById(id);
         }
+
+        dailyAccountingRepository.deleteById(id);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @DeleteMapping("/dailyAccounting")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<HttpStatus> deleteAllTutorials() {
-        try {
-            dailyAccountingRepository.deleteAll();
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<HttpStatus> deleteAllDailyAccounting() {
+        dailyAccountingRepository.deleteAll();
 
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
 }

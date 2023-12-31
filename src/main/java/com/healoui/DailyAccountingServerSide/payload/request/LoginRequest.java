@@ -1,26 +1,27 @@
 package com.healoui.DailyAccountingServerSide.payload.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import lombok.Data;
 
-@Data
 public class LoginRequest {
-    @NotBlank
-    private String username;
+  @NotBlank
+  private String username;
 
-    @NotBlank
-    private String password;
+  @NotBlank
+  private String password;
 
-    @NotBlank
-    private String uniqueIdentifier;
+  public String getUsername() {
+    return username;
+  }
 
-    @NotBlank
-    private String cin;
+  public void setUsername(String username) {
+    this.username = username;
+  }
 
-    @NotBlank
-    private String recipeName;
+  public String getPassword() {
+    return password;
+  }
 
-    @NotBlank
-    private String recipeCode;
+  public void setPassword(String password) {
+    this.password = password;
+  }
 }
