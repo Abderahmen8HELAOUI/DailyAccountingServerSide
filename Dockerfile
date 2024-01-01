@@ -1,19 +1,16 @@
-# Stage 1: Build stage
-FROM ubuntu:latest AS build
-
-RUN apt-get update && apt-get install -y openjdk-17-jdk maven
-
+#
+# Build stage
+#
+FROM maven:3.8.3-openjdk-17 AS build
 WORKDIR /app
-COPY . .
+COPY . /app/
+RUN mvn clean package
 
-RUN mvn clean install
-
-# Stage 2: Final stage
-FROM openjdk:17-jdk-slim
-
+#
+# Package stage
+#
+FROM openjdk:17-alpine
+WORKDIR /app
+COPY --from=build /app/target/*.jar /app/app.jar
 EXPOSE 8080
-
-WORKDIR /app
-COPY --from=build /app/target/DailyAccountingServerSide-0.0.1.jar app.jar
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java","-jar","app.jar"]
