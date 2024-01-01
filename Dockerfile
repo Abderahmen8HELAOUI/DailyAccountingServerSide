@@ -34,4 +34,4 @@ FROM openjdk:17-jdk-slim
 COPY --from=build /target/DailyAccountingServerSide-0.0.1-SNAPSHOT.jar DailyAccountingServerSide.jar
 # ENV PORT=8080
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","demo.jar"]
+ENTRYPOINT ["java","-jar","DailyAccountingServerSide.jar"]
